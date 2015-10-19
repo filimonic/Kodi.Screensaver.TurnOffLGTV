@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+	<category label="Addon settings">
+		<setting type="lsep" label="Make your TV use static IP address or binded in DHCP"/>
+		<setting type="sep" />
+		<setting label="IP Address" type="ipaddress" id="lgtvipaddress" enable="0"/>
+		<setting label="Current pairing key" type="text" id="pairing_key" enable="0"/>	
+		<setting type="sep" />
+		<setting label="Clear pairing key and pair" type="action" action="RunScript(script.screensaver.turnofflgtv, pairing_only)"/>
+	</category>
+</settings>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.screensaver.turnofflgtv" name="Turn Off LG TV" version="1.0.0" provider-name="FilimoniC">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0"/>
+  </requires>
+  <extension point="xbmc.ui.screensaver" library="addon.py" />
+  <extension point="xbmc.python.script" library="addon.py" />
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+	<language></language>
+	<license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
+	<forum></forum>
+	<website>filimonic.net</website>
+	<email>alexey@filimonic.net</email>
+	<source></source>
+    <summary>Turns off your LG TV</summary>
+    <description>"Screensaver" that will turn off your LG TV using IP network
+	BETA!
+	</description>
+  </extension>
+</addon>
