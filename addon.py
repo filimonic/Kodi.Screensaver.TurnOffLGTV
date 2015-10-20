@@ -7,17 +7,19 @@ import xbmcaddon
 import xbmc
 import urllib2
 import getopt
+import signal
 
 class xbmc_log:
     @staticmethod
-    def log(self, message, debuglevel=xbmc.LOGDEBUG):
-        xbmc.log("TurnOffLgTv addon ::" + str(message), debuglevel)
+    def log(message, debuglevel=xbmc.LOGDEBUG):
+        xbmc.log("LG TV PowerOff Screensaver :: " + str(message), debuglevel)
 
 class LGTVNetworkShutdownScreensaver(WebSocketClient):
     _msg_id = 0
     _registered = 0
     _power_off_sent = 0
     PairingOnly = False
+    IpAddress = "0.0.0.0"
     def send(self, payload, binary=False):
         self._msg_id = self._msg_id+1
         xbmc_log.log("Sending data to TV" + payload, xbmc.LOGDEBUG)
@@ -91,6 +93,7 @@ class LGTVNetworkShutdownScreensaver(WebSocketClient):
                         xbmcgui.Dialog().ok("Pairing key received!","Press OK to continue");
             if response['type'] == 'registered':
                 xbmc_log.log("State changed to REGISTERED", xbmc.LOGDEBUG)
+                xbmcaddon.Addon().setSetting('lgtvipaddress',self.IpAddress)
                 self._registered = 1
                 if self.PairingOnly == True:
                     xbmcgui.Dialog().ok("Pairing successful!","Now you can use the screensaver");
@@ -145,6 +148,12 @@ class LGTVNetworkShutdownScreensaver(WebSocketClient):
             self.close()
         except:
             pass
+    def __init__(self,ip_address,is_pairing_mode):
+        self.PairingOnly = is_pairing_mode
+        self.IpAddress = ip_address
+        connection_string = 'ws://' + self.IpAddress + ':3000'
+        xbmc_log.log("Connection string is [" + connection_string+ "]", xbmc.LOGDEBUG)
+        super(LGTVNetworkShutdownScreensaver,self).__init__(connection_string,protocols=['http-only', 'chat'])
     xbmc_log.log("New shutdowner started", xbmc.LOGDEBUG)
 
 
@@ -158,22 +167,17 @@ def check_connection(address):
 
 
 def Start(pairing_from_gui):
-    tv_ip_address = ""
+    tv_ip_address = "0.0.0.0"
     try:
         tv_ip_address = xbmcaddon.Addon().getSetting('lgtvipaddress')
     except:
-        if pairing_from_gui == True:
-            xbmcgui.Dialog().ok("Unable to read IP address from settings","Please save settings before pairing")
         xbmc_log.log("Unable to read IP address of TV from settings", xbmc.LOGERROR)
-    if len(tv_ip_address) <= 0:
-        if pairing_from_gui == True:
-            xbmcgui.Dialog().ok("Unable to read IP address from settings","Please save settings before pairing")
+    if len(tv_ip_address) <= 0 :
         xbmc_log.log("IP address of TV from settings is not suitable", xbmc.LOGERROR)
-    elif (check_connection(tv_ip_address) == True):
-        connection_string = 'ws://' + tv_ip_address + ':3000'
-        xbmc_log.log("Connection string is [" + connection_string+ "]", xbmc.LOGDEBUG)
-        ws = LGTVNetworkShutdownScreensaver(connection_string,protocols=['http-only', 'chat'])
-        ws.PairingOnly = pairing_from_gui
+    if pairing_from_gui:
+        tv_ip_address = xbmcgui.Dialog().input("Enter IP address of your TV",str(tv_ip_address),xbmcgui.INPUT_IPADDRESS)
+    if (check_connection(tv_ip_address) == True):
+        ws = LGTVNetworkShutdownScreensaver(tv_ip_address,pairing_from_gui)
         try:
             xbmc_log.log("Connecting...", xbmc.LOGDEBUG)
             ws.connect()
@@ -186,31 +190,19 @@ def Start(pairing_from_gui):
             xbmc_log.log("Error while connecting to TV", xbmc.LOGERROR)
         del ws
     else:
-        xbmcgui.Dialog().notification("TV is not available over network", "Possibly unsupported model or wrong configuration of screensaver addon?",xbmcgui.NOTIFICATION_WARNING, 30000 ,False)
+        xbmcgui.Dialog().notification("TV is not available over network", "Possibly unsupported model or wrong configuration of screensaver addon?",xbmcgui.NOTIFICATION_WARNING, 10000 ,False)
         xbmc_log.log("Seems that TV is not available over network", xbmc.LOGDEBUG)
 
 
 try:
     if 'pairing_only' in sys.argv:
-        xbmc_log.log("1", xbmc.LOGDEBUG)
-        old_ip_address = ""
-        try:
-            old_ip_address = str(xbmcaddon.Addon().getSetting("lgtvipaddress"))
-        except:
-            pass
-        new_ip_address = xbmcgui.Dialog().input("Enter IP address of your TV",old_ip_address,type=xbmcgui.INPUT_IPADDRESS)
-        if new_ip_address != '':
+            xbmc_log.log("Running in pairing mode", xbmc.LOGDEBUG)
             xbmcgui.Dialog().ok("Get ready!","Please press OK and be ready to confirm pairing on your TV remote")
-            xbmcaddon.Addon().setSetting("pairing_key",'undefined')
-            xbmcaddon.Addon().setSetting("lgtvipaddress",new_ip_address)
             Start(True)
-        else:
-            xbmcgui.Dialog().ok("Pairing was cancelled","Input was cancelled")
     else:
         xbmc_log.log("Running in screensaver mode", xbmc.LOGDEBUG)
         Start(False)
 except:
-    xbmc_log.log("Error in getopt" + str(sys.exc_info()[0]) , xbmc.LOGDEBUG)
     Start(False)
 
 
