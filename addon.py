@@ -1,17 +1,21 @@
 import sys
-from ws4py.client.threadedclient import WebSocketClient
-import time
-import json
 import xbmcgui
 import xbmcaddon
 import xbmc
+import time
+import json
 import urllib2
 import threading
 
 Addon = xbmcaddon.Addon()
+__path__ = Addon.getAddonInfo('path')
+sys.path.insert(1,__path__ + '/resources/lib')
+
+from ws4py.client.threadedclient import WebSocketClient
+
 Dialog = xbmcgui.Dialog()
 __scriptname__ = Addon.getAddonInfo('name')
-__path__ = Addon.getAddonInfo('path')
+
 
 class xbmc_log:
     @staticmethod
@@ -24,7 +28,7 @@ class LGTVNetworkShutdownScreensaver():
     TV_TYPE_2011 = '2'
 
     ip_address = '0.0.0.0'
-    tv_type = '30110'
+    tv_type = '0'
     timeout = 10
     timeout_timer = None
     cli = None
@@ -156,7 +160,7 @@ class LGTVNetworkShutdown2012:
                 Dialog.notification("LG TV 2012-2014","Seems this is is not TV")
                 return False
         except urllib2.URLError as err:
-            Dialog.notification("LG TV 2012-2014","Check failed. Maybe IP is incorrect?")
+            Dialog.notification("LG TV 2012-2014","Connection failed. Maybe IP or type is incorrect?")
             xbmc_log.log("Check failed, URLError")
         return False
 
@@ -297,7 +301,7 @@ class LGTVNetworkShutdown2015(WebSocketClient):
                {
                 "type" : "request",
                 "id" : "request_" + str(self._msg_id),
-                "uri" : "ssap://system/turnOffxxx",
+                "uri" : "ssap://system/turnOff",
                 "payload" : {
                     "client-key" : self.client_key
                 }
@@ -329,6 +333,7 @@ class LGTVNetworkShutdown2015(WebSocketClient):
                 return
             self.run_forever()
         else:
+            Dialog.notification("LG TV 2015","Connection failed. Maybe IP or type is incorrect?")
             raise RuntimeWarning('Unable to test connection')
     def check_connection(self, ip_address):
         try:

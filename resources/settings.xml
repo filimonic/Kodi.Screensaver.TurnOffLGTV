@@ -4,9 +4,9 @@
 		<setting type="lsep" label="30011" enable="false"/>
 		<setting type="sep" />
 		<setting type="lsep" label="30012" enable="false"/>
-		<setting label="30013" type="ipaddress" id="ip_address"/>
 		<!-- <setting label="30014" type="select" id="tv_type" lvalues="30110|30120|30130" /> -->
-		<setting label="30014" type="select" id="tv_type" lvalues="30110|30120" />
+		<setting label="30013" type="select" id="tv_type" lvalues="30110|30120" />
+		<setting label="30014" type="ipaddress" id="ip_address"/>
 		<setting type="sep" />
 		<setting type="lsep" label="30015" enable="false"/>
 	</category>
