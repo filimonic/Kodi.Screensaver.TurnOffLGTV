@@ -20,7 +20,7 @@
 		<setting type="lsep" label="30121" />
 		<setting type="lsep"  subsetting="true" label="30122" enable="false" />
 		<setting type="lsep"  subsetting="true" label="30123" enable="false" />
-		<setting label="30129" subsetting="true" type	="number" id="pairing_key_2012" value="" />
+		<setting label="30129" type="number" id="pairing_key_2012" default="" />
 	</category>
 	<!--
 	<category label="30130">
