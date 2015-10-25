@@ -1,0 +1,87 @@
+# Kodi Media Center language file
+# Addon Name: Turn Off LG TV Screensaver
+# Addon id: screensaver.kodi.turnofflgtv
+# Addon Provider: FilimoniC
+
+#Common
+msgctxt "#30010"
+msgid "Common"
+msgstr "Common"
+
+msgctxt "#30011"
+msgid "1. Make your TV use static IP address or binded in DHCP"
+msgstr "1. Make your TV use static IP address or binded in DHCP"
+
+msgctxt "#30012"
+msgid "2. Enter TV IP and type"
+msgstr "2. Enter TV IP and type"
+
+msgctxt "#30013"
+msgid "LG TV Type"
+msgstr "LG TV Type"
+
+msgctxt "#30014"
+msgid "LG TV IP address"
+msgstr "LG TV IP address"
+
+msgctxt "#30015"
+msgid "3. Go to corresponding tab to see next steps"
+msgstr "3. Go to corresponding tab to see next steps"
+
+
+#LG TV 2012-2014 specific
+msgctxt "#30120"
+msgid "LG TV 2012-2014"
+msgstr "LG TV 2012-2014"
+
+msgctxt "#30121"
+msgid "LG TV 2012-2014 specific settings"
+msgstr "LG TV 2012-2014 specific settings"
+
+msgctxt "#30122"
+msgid "Run screensaver preview at least once to know pairing key"
+msgstr "Run screensaver preview at least once to know pairing key"
+
+msgctxt "#30123"
+msgid "Then go to settings again and input key here"
+msgstr "Then go to settings again and input key here"
+
+msgctxt "#30129"
+msgid "LG TV (2012-2014 only) key"
+msgstr "LG TV (2012-2014 only) key"
+
+#LG TV 2015 specific
+msgctxt "#30110"
+msgid "LG TV 2015+"
+msgstr "LG TV 2015+"
+
+msgctxt "#30111"
+msgid "LG TV 2015 specific settings"
+msgstr "LG TV 2015 specific settings"
+
+msgctxt "#30112"
+msgid "Run screensaver preview at least once to confirm pairing"
+msgstr "Run screensaver preview at least once to confirm pairing"
+
+msgctxt "#30113"
+msgid "Key will be set automatically when you confirm pairing on TV"
+msgstr "Key will be set automatically when you confirm pairing on TV"
+
+msgctxt "#30119"
+msgid "LG TV (2015 only) key"
+msgstr "LG TV (2015 only) key"
+
+#LG TV 2011 specific
+msgctxt "#30130"
+msgid "LG TV 2011 (unsupported)"
+msgstr "LG TV 2011 (unsupported)"
+
+msgctxt "#30131"
+msgid "LG TV 2011 specific settings"
+msgstr "LG TV 2011 specific settings"
+
+msgctxt "#30132"
+msgid "LG TV 2011 not supported yet"
+msgstr "LG TV 2011 not supported yet"
+
+

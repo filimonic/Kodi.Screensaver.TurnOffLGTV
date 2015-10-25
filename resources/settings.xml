@@ -1,11 +1,31 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
-	<category label="Addon settings">
-		<setting type="lsep" label="Make your TV use static IP address or binded in DHCP"/>
+	<category label="30010">
+		<setting type="lsep" label="30011" enable="false"/>
 		<setting type="sep" />
-		<setting label="IP Address" type="ipaddress" id="lgtvipaddress" enable="0"/>
-		<setting label="Current pairing key" type="text" id="pairing_key" enable="0"/>	
+		<setting type="lsep" label="30012" enable="false"/>
+		<setting label="30013" type="ipaddress" id="ip_address"/>
+		<!-- <setting label="30014" type="select" id="tv_type" lvalues="30110|30120|30130" /> -->
+		<setting label="30014" type="select" id="tv_type" lvalues="30110|30120" />
 		<setting type="sep" />
-		<setting label="Clear pairing key and pair" type="action" action="RunScript(script.screensaver.turnofflgtv, pairing_only)"/>
+		<setting type="lsep" label="30015" enable="false"/>
 	</category>
+	<category label="30110">
+		<setting type="lsep" label="30111" />
+		<setting type="lsep"  subsetting="true" label="30112" enable="false" />
+		<setting type="lsep"  subsetting="true" label="30113" enable="false" />
+		<setting label="30119" subsetting="true" type="text" id="pairing_key_2015" enable="false" />
+	</category>
+	<category label="30120">
+		<setting type="lsep" label="30121" />
+		<setting type="lsep"  subsetting="true" label="30122" enable="false" />
+		<setting type="lsep"  subsetting="true" label="30123" enable="false" />
+		<setting label="30129" subsetting="true" type	="number" id="pairing_key_2012" value="" />
+	</category>
+	<!--
+	<category label="30130">
+		<setting type="lsep" label="30131" />
+		<setting type="lsep"  subsetting="true" label="30132" enable="false" />
+	</category>
+	-->
 </settings>

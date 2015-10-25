@@ -6,27 +6,220 @@ import xbmcgui
 import xbmcaddon
 import xbmc
 import urllib2
-import getopt
-import signal
+import threading
+
+Addon = xbmcaddon.Addon()
+Dialog = xbmcgui.Dialog()
+__scriptname__ = Addon.getAddonInfo('name')
+__path__ = Addon.getAddonInfo('path')
 
 class xbmc_log:
     @staticmethod
     def log(message, debuglevel=xbmc.LOGDEBUG):
         xbmc.log("LG TV PowerOff Screensaver :: " + str(message), debuglevel)
 
-class LGTVNetworkShutdownScreensaver(WebSocketClient):
+class LGTVNetworkShutdownScreensaver():
+    TV_TYPE_2015 = '0'
+    TV_TYPE_2012 = '1'
+    TV_TYPE_2011 = '2'
+
+    ip_address = '0.0.0.0'
+    tv_type = '30110'
+    timeout = 10
+    timeout_timer = None
+    cli = None
+    def __init__(self):
+        _tv_type = Addon.getSetting('tv_type')
+        if _tv_type != '':
+            self.tv_type = _tv_type
+        ip_address = Addon.getSetting('ip_address')
+        if ip_address != '':
+            self.ip_address = ip_address
+
+        self.timeout_timer = threading.Timer(self.timeout,self.timeout_timer_fired)
+        xbmc_log.log("Tv type is: " + self.tv_type)
+        if self.tv_type == self.TV_TYPE_2015:
+            xbmc_log.log("Running timer")
+            self.timeout_timer.start()
+            xbmc_log.log("Creating shutdowneer")
+            try:
+                self.cli = LGTVNetworkShutdown2015(ip_address)
+            except RuntimeWarning as detail:
+                xbmc_log.log('{W}:' + detail.message)
+        elif self.tv_type == self.TV_TYPE_2012:
+            xbmc_log.log("Running timer")
+            self.timeout_timer.start()
+            xbmc_log.log("Creating shutdowneer")
+            try:
+                self.cli = LGTVNetworkShutdown2012(ip_address)
+            except RuntimeWarning as detail:
+                xbmc_log.log('{W}:' + detail.message)
+        elif self.tv_type == self.TV_TYPE_2011:
+            Dialog.notification("LG TV 2011","2011 LG TV is not supported yet")
+            xbmc_log.log("2011 LG TV is not supported yet")
+        else:
+            xbmc_log.log("Ignoring TV type" + str(self.tv_type))
+        xbmc_log.log("finished")
+        self.exit()
+
+
+    def timeout_timer_fired(self):
+        xbmc_log.log("Timer fired!")
+        self.timeout_timer.cancel()
+        try:
+            self.cli.close()
+        except:
+            pass
+
+    def exit(self):
+        xbmc_log.log("Exiting LGTVNetworkShutdownScreensaver")
+        try:
+            self.timeout_timer.cancel()
+        except:
+            pass
+        try:
+            self.cli.close()
+        except:
+            pass
+        try:
+            del self.cli
+        except:
+            pass
+
+
+class Screensaver(xbmcgui.WindowXMLDialog):
+    shutter = None
+    class ExitMonitor(xbmc.Monitor):
+
+        def __init__(self, exit_callback):
+            self.exit_callback = exit_callback
+
+        def onScreensaverDeactivated(self):
+            xbmc_log.log('ExitMonitor: sending exit_callback')
+            self.exit_callback()
+
+    def onInit(self):
+        xbmc_log.log('Screensaver: onInit')
+        self.monitor = self.ExitMonitor(self.exit)
+        self.shutter = LGTVNetworkShutdownScreensaver()
+
+    def exit(self):
+        xbmc_log.log('Screensaver: Exit requested')
+        try:
+            self.shutter.exit()
+        except:
+            pass
+        try:
+            del self.monitor
+        except:
+            pass
+        self.close()
+
+
+class LGTVNetworkShutdown2012:
+    PAIRING_KEY_PARAMETER_NAME = 'pairing_key_2012'
+    HTTP_HEADERS = {"Content-Type": "application/atom+xml"}
+    COMMAND_KEY_POWER = str(1) #Refer to http://developer.lgappstv.com/TV_HELP/index.jsp?topic=%2Flge.tvsdk.references.book%2Fhtml%2FUDAP%2FUDAP%2FAnnex+A+Table+of+virtual+key+codes+on+remote+Controller.htm
+    HTTP_TIMEOUT = 3
+
+    @property
+    def client_key(self):
+        key = "000000"
+        try:
+            key_tmp = xbmcaddon.Addon().getSetting(self.PAIRING_KEY_PARAMETER_NAME)
+            xbmc_log.log("Pairing key read: " + key_tmp, xbmc.LOGDEBUG)
+            if key_tmp != '':
+                key = key_tmp
+        except:
+            xbmc_log.log("Unable to read pairing key", xbmc.LOGERROR)
+        return key
+
+    def check_connection(self, ip_address):
+        try:
+            connection_url = 'http://' + ip_address + ':8080'
+            xbmc_log.log("Checking connection to " + connection_url )
+            response=urllib2.urlopen(connection_url,timeout=3)
+            xbmc_log.log("Got response, code = " + str(response.getcode()))
+            if (response.getcode() == 404):
+                xbmc_log.log("Check passed, 404 expected {1}")
+                return True
+            else:
+                xbmc_log.log("Check failed, response not as expected")
+                Dialog.notification("LG TV 2012-2014","Seems this is is not TV")
+                return False
+        except urllib2.HTTPError as err:
+            if err.code == 404:
+                xbmc_log.log("Check passed, 404 expected {2}")
+                return True
+            else:
+                xbmc_log.log("Check failed, response is not as expected" + str(err.code))
+                Dialog.notification("LG TV 2012-2014","Seems this is is not TV")
+                return False
+        except urllib2.URLError as err:
+            Dialog.notification("LG TV 2012-2014","Check failed. Maybe IP is incorrect?")
+            xbmc_log.log("Check failed, URLError")
+        return False
+
+    def check_registration(self,ip_address):
+        data = "<?xml version=\"1.0\" encoding=\"utf-8\"?><auth><type>AuthReq</type><value>" + self.client_key + "</value></auth>"
+        try:
+            request = urllib2.Request('http://'+ip_address+':8080/roap/api/auth',data=data,headers=self.HTTP_HEADERS)
+            response = urllib2.urlopen(request, timeout=self.HTTP_TIMEOUT)
+            print(response.read())
+            return True
+        except urllib2.HTTPError as err:
+            if err.code == 401:
+                xbmc_log.log("Wrong key supplied: " + self.client_key)
+                Dialog.notification("LG TV 2012-2014","Go to settings to set up key")
+                return False
+            else:
+                xbmc_log.log("Unexpected response code " + str(err.code))
+        except urllib2.URLError:
+            xbmc_log.log("Error checking registration: unable to connect or make a request {URLError)")
+            return False
+
+    def send_turn_off_command(self,ip_address):
+        data = "<?xml version=\"1.0\" encoding=\"utf-8\"?><command><name>HandleKeyInput</name><value>" + self.COMMAND_KEY_POWER + "</value></command>"
+        try:
+            request = urllib2.Request('http://'+ip_address+':8080/roap/api/command',data=data,headers=self.HTTP_HEADERS)
+            response = urllib2.urlopen(request, timeout=self.HTTP_TIMEOUT)
+            Dialog.notification("LG TV 2012-2014","TV turned off")
+            return True
+        except urllib2.HTTPError as err:
+            xbmc_log.log("Error sending PWR_OFF: unable to connect or make a request {HTTPErrror): " + str(err.code))
+            return False
+        except urllib2.URLError:
+            xbmc_log.log("Error sending PWR_OFF: unable to connect or make a request {URLError)")
+            return False
+
+    def __init__(self, ip_address):
+        if self.check_connection(ip_address) == True:
+            if self.check_registration(ip_address) == True:
+                if self.send_turn_off_command(ip_address) == True:
+                    xbmc_log.log("Successfully sent PWR_OFF")
+                else:
+                    raise RuntimeWarning('Unable to send PWR_OFF')
+            else:
+                raise RuntimeWarning('Unable to check registration - possibly wrong key')
+        else:
+            raise RuntimeWarning('Unable to check connection')
+
+    def close(self):
+        pass
+
+class LGTVNetworkShutdown2015(WebSocketClient):
     _msg_id = 0
     _registered = 0
     _power_off_sent = 0
-    PairingOnly = False
-    IpAddress = "0.0.0.0"
+    PAIRING_KEY_PARAMETER_NAME = 'pairing_key_2015'
+
     def send(self, payload, binary=False):
         self._msg_id = self._msg_id+1
         xbmc_log.log("Sending data to TV" + payload, xbmc.LOGDEBUG)
-        super(LGTVNetworkShutdownScreensaver,self).send(payload,binary)
+        super(LGTVNetworkShutdown2015,self).send(payload,binary)
     def save_pairing_key(self, key):
         try:
-           xbmcaddon.Addon().setSetting('pairing_key',key)
+           xbmcaddon.Addon().setSetting(self.PAIRING_KEY_PARAMETER_NAME,key)
            xbmc_log.log("Pairing key saved: " + key, xbmc.LOGDEBUG)
         except:
             xbmc_log.log("Unable to save pairng key", xbmc.LOGERROR)
@@ -34,7 +227,7 @@ class LGTVNetworkShutdownScreensaver(WebSocketClient):
     def client_key(self):
         key = "123"
         try:
-            key = xbmcaddon.Addon().getSetting('pairing_key')
+            key = xbmcaddon.Addon().getSetting(self.PAIRING_KEY_PARAMETER_NAME)
             xbmc_log.log("Pairing key read: " + key, xbmc.LOGDEBUG)
         except:
             xbmc_log.log("Unable to read pairing key", xbmc.LOGERROR)
@@ -42,7 +235,7 @@ class LGTVNetworkShutdownScreensaver(WebSocketClient):
     @property
     def register_string(self):
         key = self.client_key
-        if key == "" or self.PairingOnly == True:
+        if key == "":
             register_string = json.JSONEncoder().encode(
                 {
                     "type" : "register",
@@ -57,7 +250,6 @@ class LGTVNetworkShutdownScreensaver(WebSocketClient):
                     }
                 }
             )
-            ##register_string = register_string.replace("%CLIENTKEYPLACEHOLDER%","");
         else:
             register_string = json.JSONEncoder().encode(
                 {
@@ -74,12 +266,11 @@ class LGTVNetworkShutdownScreensaver(WebSocketClient):
                     }
                 }
             )
-            ##register_string = register_string.replace("%CLIENTKEYPLACEHOLDER%","\"client-key\":\"" + key + "\",");
         xbmc_log.log("Register string is" + register_string, xbmc.LOGDEBUG)
         return  register_string
     def opened(self):
         xbmc_log.log("Connection to TV opened", xbmc.LOGDEBUG)
-        self.msg_id = 0
+        self._msg_id = 0
         self.send(self.register_string)
     def closed(self, code, reason=None):
         xbmc_log.log("Connection to TV closed : " + str(code) + "(" + reason + ")", xbmc.LOGDEBUG)
@@ -88,39 +279,25 @@ class LGTVNetworkShutdownScreensaver(WebSocketClient):
         if message.is_text:
             response = json.loads(message.data.decode("utf-8"),"utf-8" )
             if 'client-key' in response['payload']:
-                    self.save_pairing_key(response['payload']['client-key'])
-                    if self.PairingOnly:
-                        xbmcgui.Dialog().ok("Pairing key received!","Press OK to continue");
+                self.save_pairing_key(response['payload']['client-key'])
             if response['type'] == 'registered':
                 xbmc_log.log("State changed to REGISTERED", xbmc.LOGDEBUG)
-                xbmcaddon.Addon().setSetting('lgtvipaddress',self.IpAddress)
                 self._registered = 1
-                if self.PairingOnly == True:
-                    xbmcgui.Dialog().ok("Pairing successful!","Now you can use the screensaver");
-                    self.close();
             if self._registered == 0 and response['type'] == 'error':
                 xbmc_log.log("Pairing error " + str(response['error']), xbmc.LOGERROR)
-                if self.PairingOnly == True:
-                    xbmcgui.Dialog().ok("Pairing error",str(response['error']));
-                    self.close();
-            if self._power_off_sent == 0 and self._registered == 1 and self.PairingOnly == False:
+            if self._power_off_sent == 0 and self._registered == 1:
                 xbmc_log.log("Sending POWEROFF", xbmc.LOGDEBUG)
                 self.send_power_off()
-            if self._power_off_sent == 1:
-                xbmc_log.log("TV reports POWEROFF received", xbmc.LOGDEBUG)
-                self.close(1000,"PowerOff sent")
-
+                self.close()
         else:
             xbmc_log.log("Unreadable message", xbmc.LOGDEBUG)
-
-
 
     def send_power_off(self):
         power_off_string = json.JSONEncoder().encode(
                {
                 "type" : "request",
                 "id" : "request_" + str(self._msg_id),
-                "uri" : "ssap://system/turnOff",
+                "uri" : "ssap://system/turnOffxxx",
                 "payload" : {
                     "client-key" : self.client_key
                 }
@@ -128,10 +305,7 @@ class LGTVNetworkShutdownScreensaver(WebSocketClient):
         )
         self.send(power_off_string)
         self._power_off_sent = 1
-        try:
-            xbmcgui.Dialog().notification("TV turned off","Sent command to turn off TV")
-        except:
-            pass
+        Dialog.notification("LG TV 2015+","Sent command to turn off TV")
         xbmc_log.log("Sent POWEROFF successfully", xbmc.LOGDEBUG)
     @property
     def handshake_headers(self):
@@ -139,72 +313,45 @@ class LGTVNetworkShutdownScreensaver(WebSocketClient):
         Should overload this, because LG TVs do not operate with Origin correctly
         """
         return [(p, v)
-                   for p,v in super(LGTVNetworkShutdownScreensaver,self).handshake_headers
+                   for p,v in super(LGTVNetworkShutdown2015,self).handshake_headers
                    if p != "Origin"
                ]
-    def onScreensaverDeactivated(self):
-        xbmc_log.log("OnScreensaverDeactivated!", xbmc.LOGDEBUG)
+    def __init__(self,ip_address):
+        xbmc_log.log("Initing")
+        if self.check_connection(ip_address):
+            connection_string = 'ws://' + ip_address + ':3000'
+            xbmc_log.log("Connection string is [" + connection_string+ "]", xbmc.LOGDEBUG)
+            super(LGTVNetworkShutdown2015,self).__init__(connection_string,protocols=['http-only', 'chat'])
+            try:
+                self.connect()
+            except:
+                raise RuntimeWarning('Unable to estabilish connection')
+                return
+            self.run_forever()
+        else:
+            raise RuntimeWarning('Unable to test connection')
+    def check_connection(self, ip_address):
         try:
-            self.close()
-        except:
-            pass
-    def __init__(self,ip_address,is_pairing_mode):
-        self.PairingOnly = is_pairing_mode
-        self.IpAddress = ip_address
-        connection_string = 'ws://' + self.IpAddress + ':3000'
-        xbmc_log.log("Connection string is [" + connection_string+ "]", xbmc.LOGDEBUG)
-        super(LGTVNetworkShutdownScreensaver,self).__init__(connection_string,protocols=['http-only', 'chat'])
-    xbmc_log.log("New shutdowner started", xbmc.LOGDEBUG)
+            connection_url = 'http://' + ip_address + ':3000'
+            xbmc_log.log("Checking connection to " + connection_url )
+            response=urllib2.urlopen(connection_url,timeout=3)
+            xbmc_log.log("Check passed")
+            return True
+        except urllib2.URLError as err:
+            xbmc_log.log("Check failed")
+        return False
+
+xbmc_log.log("PATH is" + __path__)
 
 
-def check_connection(address):
-    try:
-        response=urllib2.urlopen('http://' + address + ':3000',timeout=3)
-        return True
-    except urllib2.URLError as err:
-        pass
-    return False
-
-
-def Start(pairing_from_gui):
-    tv_ip_address = "0.0.0.0"
-    try:
-        tv_ip_address = xbmcaddon.Addon().getSetting('lgtvipaddress')
-    except:
-        xbmc_log.log("Unable to read IP address of TV from settings", xbmc.LOGERROR)
-    if len(tv_ip_address) <= 0 :
-        xbmc_log.log("IP address of TV from settings is not suitable", xbmc.LOGERROR)
-    if pairing_from_gui:
-        tv_ip_address = xbmcgui.Dialog().input("Enter IP address of your TV",str(tv_ip_address),xbmcgui.INPUT_IPADDRESS)
-    if (check_connection(tv_ip_address) == True):
-        ws = LGTVNetworkShutdownScreensaver(tv_ip_address,pairing_from_gui)
-        try:
-            xbmc_log.log("Connecting...", xbmc.LOGDEBUG)
-            ws.connect()
-            xbmc_log.log("Connected!", xbmc.LOGDEBUG)
-            ws.run_forever()
-            ws.close()
-        except:
-            if pairing_from_gui == True:
-                xbmcgui.Dialog().ok("Could not connect to TV","Could not connect to TV")
-            xbmc_log.log("Error while connecting to TV", xbmc.LOGERROR)
-        del ws
+if __name__ == '__main__':
+    if 'show_help' in sys.argv:
+        raise NotImplementedError()
     else:
-        xbmcgui.Dialog().notification("TV is not available over network", "Possibly unsupported model or wrong configuration of screensaver addon?",xbmcgui.NOTIFICATION_WARNING, 10000 ,False)
-        xbmc_log.log("Seems that TV is not available over network", xbmc.LOGDEBUG)
-
-
-try:
-    if 'pairing_only' in sys.argv:
-            xbmc_log.log("Running in pairing mode", xbmc.LOGDEBUG)
-            xbmcgui.Dialog().ok("Get ready!","Please press OK and be ready to confirm pairing on your TV remote")
-            Start(True)
-    else:
-        xbmc_log.log("Running in screensaver mode", xbmc.LOGDEBUG)
-        Start(False)
-except:
-    Start(False)
-
-
-
-
+        screensaver_gui = Screensaver("screensaver-display.xml",__path__,"default")
+        screensaver_gui.doModal()
+        del screensaver_gui
+        del Addon
+        del Dialog
+        xbmc_log.log('Screensaver deleted')
+        sys.modules.clear()
