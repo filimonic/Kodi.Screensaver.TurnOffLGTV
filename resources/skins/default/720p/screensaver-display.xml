@@ -7,7 +7,10 @@
             <width>1280</width>
             <height>720</height>
             <textcolor>FFFFFFFF</textcolor>
-            <label>Turning TV off...</label>
+            <label>
+TV was turned off.
+Please press any key to return to Kodi.
+</label>
             <align>center</align>
             <aligny>center</aligny>
         </control>

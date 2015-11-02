@@ -1,3 +1,12 @@
+__author__ = "Alexey D. Filimoniov <filimonic>"
+__credits__ = ["dreamcat4 for LG TV Remote 2011","msloth for LG TV Remote 2015", "ubaransel for LG TV Remote 2012-2014"]
+__license__ = "GPL"
+__version__ = "1.1.3"
+__maintainer__ = "Alexey D. Filimonov <filimonic>"
+__email__ = "alexey@filimonic.net"
+__status__ = "Developement"
+__url__ = "https://github.com/filimonic/Kodi.Screensaver.TurnOffLGTV"
+
 import sys
 import xbmcgui
 import xbmcaddon
@@ -6,11 +15,15 @@ import time
 import json
 import urllib2
 import threading
+import os
 
 Addon = xbmcaddon.Addon()
-__path__ = Addon.getAddonInfo('path')
-sys.path.insert(1,__path__ + '/resources/lib')
 
+#This is done because we can not import ws4py from resources/lib directly
+__path__ = Addon.getAddonInfo('path')
+sys.path.insert(1,os.path.join( __path__ ,'resources/lib'))
+
+#This import available only after adding sys.path
 from ws4py.client.threadedclient import WebSocketClient
 
 Dialog = xbmcgui.Dialog()
@@ -345,6 +358,9 @@ class LGTVNetworkShutdown2015(WebSocketClient):
         except urllib2.URLError as err:
             xbmc_log.log("Check failed")
         return False
+
+class LGTVNetworkShutdown2011:
+    ####### TODO: https://github.com/dreamcat4/lgremote/blob/master/lgremote
 
 xbmc_log.log("PATH is" + __path__)
 
