@@ -359,10 +359,8 @@ class LGTVNetworkShutdown2015(WebSocketClient):
             xbmc_log.log("Check failed")
         return False
 
-class LGTVNetworkShutdown2011:
+#class LGTVNetworkShutdown2011:
     ####### TODO: https://github.com/dreamcat4/lgremote/blob/master/lgremote
-
-xbmc_log.log("PATH is" + __path__)
 
 
 if __name__ == '__main__':
