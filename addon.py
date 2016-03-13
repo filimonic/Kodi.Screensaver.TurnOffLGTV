@@ -1,7 +1,7 @@
 __author__ = "Alexey D. Filimoniov <filimonic>"
 __credits__ = ["dreamcat4 for LG TV Remote 2011","msloth for LG TV Remote 2015", "ubaransel for LG TV Remote 2012-2014"]
 __license__ = "GPL"
-__version__ = "1.1.3"
+__version__ = "1.1.5"
 __maintainer__ = "Alexey D. Filimonov <filimonic>"
 __email__ = "alexey@filimonic.net"
 __status__ = "Developement"
@@ -18,6 +18,7 @@ import threading
 import os
 
 Addon = xbmcaddon.Addon()
+Player = xbmc.Player()
 
 #This is done because we can not import ws4py from resources/lib directly
 __path__ = Addon.getAddonInfo('path')
@@ -137,6 +138,9 @@ class LGTVNetworkShutdown2012:
     PAIRING_KEY_PARAMETER_NAME = 'pairing_key_2012'
     HTTP_HEADERS = {"Content-Type": "application/atom+xml"}
     COMMAND_KEY_POWER = str(1) #Refer to http://developer.lgappstv.com/TV_HELP/index.jsp?topic=%2Flge.tvsdk.references.book%2Fhtml%2FUDAP%2FUDAP%2FAnnex+A+Table+of+virtual+key+codes+on+remote+Controller.htm
+    COMMAND_KEY_ESM  = str(409)
+    COMMAND_KEY_DOWN = str(13)
+    COMMAND_KEY_OK   = str(20)
     HTTP_TIMEOUT = 3
 
     @property
@@ -196,11 +200,31 @@ class LGTVNetworkShutdown2012:
             return False
 
     def send_turn_off_command(self,ip_address):
-        data = "<?xml version=\"1.0\" encoding=\"utf-8\"?><command><name>HandleKeyInput</name><value>" + self.COMMAND_KEY_POWER + "</value></command>"
+        bIsMusicModeEnabled = ( Addon.getSetting("music_mode_2012") == "true" )
+        bIsInMusicMode = ( Player.isPlayingAudio() == 1 )
+        xbmc_log.log("music_mode_2012:" + str(Addon.getSetting("music_mode_2012")) + "; bIsMusicModeEnabled:" + str(bIsMusicModeEnabled) + "; bIsInMusicMode:" + str(bIsInMusicMode) + "; Player.isPlayingAudio():" + str(Player.isPlayingAudio()) + "; (bIsMusicModeEnabled and bIsInMusicMode): " + str((bIsMusicModeEnabled and bIsInMusicMode)))
+        if (not (bIsMusicModeEnabled and bIsInMusicMode) ):
+            xbmc_log.log("Sending TURN OFF command")
+            return self.send_command(ip_address,self.COMMAND_KEY_POWER)
+        else:
+            i = int(float(Addon.getSetting("music_mode_2012_value")))
+            xbmc_log.log("Sending ESM MENU command")
+            self.send_command(ip_address,self.COMMAND_KEY_ESM)
+            while i > 0 :
+                xbmc_log.log("Sending DOWN command. i=" + str(i))
+                self.send_command(ip_address,self.COMMAND_KEY_DOWN)
+                i = i - 1
+            xbmc_log.log("Sending OK command")
+            return self.send_command(ip_address,self.COMMAND_KEY_OK);
+
+    def send_command(self,ip_address,command):
+        data = "<?xml version=\"1.0\" encoding=\"utf-8\"?><command><name>HandleKeyInput</name><value>" + command + "</value></command>"
         try:
             request = urllib2.Request('http://'+ip_address+':8080/roap/api/command',data=data,headers=self.HTTP_HEADERS)
             response = urllib2.urlopen(request, timeout=self.HTTP_TIMEOUT)
-            Dialog.notification("LG TV 2012-2014","TV turned off")
+            Dialog.notification("LG TV 2012-2014","Command sent")
+            xbmc_log.log("Command sent")
+            time.sleep(1);
             return True
         except urllib2.HTTPError as err:
             xbmc_log.log("Error sending PWR_OFF: unable to connect or make a request {HTTPErrror): " + str(err.code))

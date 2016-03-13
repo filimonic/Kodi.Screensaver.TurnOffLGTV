@@ -21,6 +21,9 @@
 		<setting type="lsep"  subsetting="true" label="30122" enable="false" />
 		<setting type="lsep"  subsetting="true" label="30123" enable="false" />
 		<setting label="30129" type="number" id="pairing_key_2012" default="" />
+		<setting type="sep" />
+		<setting label="30124" type="bool" id="music_mode_2012" default="false" />
+		<setting label="30125" type="slider" id="music_mode_2012_value" default="1" range="0,1,10" />
 	</category>
 	<!--
 	<category label="30130">

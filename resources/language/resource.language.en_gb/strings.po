@@ -54,6 +54,14 @@ msgctxt "#30123"
 msgid "Then go to settings again and input key here"
 msgstr "Then go to settings again and input key here"
 
+msgctxt "#30124"
+msgid "Go Energy Saving if playing audio"
+msgstr "Go Energy Saving if playing audio"
+
+msgctxt "#30125"
+msgid "Press <DOWN> x times in energy saving menu"
+msgstr "Press <DOWN> x times in energy saving menu"
+
 msgctxt "#30129"
 msgid "LG TV (2012-2014 only) key"
 msgstr "LG TV (2012-2014 only) key"
