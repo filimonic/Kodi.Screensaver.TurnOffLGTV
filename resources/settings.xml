@@ -5,7 +5,7 @@
 		<setting type="sep" />
 		<setting type="lsep" label="30012" enable="false"/>
 		<!-- <setting label="30014" type="select" id="tv_type" lvalues="30110|30120|30130" /> -->
-		<setting label="30013" type="select" id="tv_type" lvalues="30110|30120" />
+		<setting label="30013" type="select" id="tv_type" lvalues="30110|30120|30130" />
 		<setting label="30014" type="ipaddress" id="ip_address"/>
 		<setting type="sep" />
 		<setting type="lsep" label="30015" enable="false"/>
@@ -25,10 +25,10 @@
 		<setting label="30124" type="bool" id="music_mode_2012" default="false" />
 		<setting label="30125" type="slider" id="music_mode_2012_value" default="1" range="0,1,10" />
 	</category>
-	<!--
 	<category label="30130">
 		<setting type="lsep" label="30131" />
-		<setting type="lsep"  subsetting="true" label="30132" enable="false" />
+		<setting type="lsep"  subsetting="true" label="30122" enable="false" />
+		<setting type="lsep"  subsetting="true" label="30123" enable="false" />
+		<setting label="30133" type="text" id="pairing_key_2011" default="" />		
 	</category>
-	-->
 </settings>

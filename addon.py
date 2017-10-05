@@ -1,5 +1,5 @@
 __author__ = "Alexey D. Filimoniov <filimonic>"
-__credits__ = ["dreamcat4 for LG TV Remote 2011","msloth for LG TV Remote 2015", "ubaransel for LG TV Remote 2012-2014"]
+__credits__ = ["haribertlondon/dreamcat4 for LG TV Remote 2011","msloth for LG TV Remote 2015", "ubaransel for LG TV Remote 2012-2014"]
 __license__ = "GPL"
 __version__ = "1.1.5"
 __maintainer__ = "Alexey D. Filimonov <filimonic>"
@@ -16,6 +16,7 @@ import json
 import urllib2
 import threading
 import os
+import xml.etree.ElementTree as etree
 
 Addon = xbmcaddon.Addon()
 Player = xbmc.Player()
@@ -73,8 +74,15 @@ class LGTVNetworkShutdownScreensaver():
             except RuntimeWarning as detail:
                 xbmc_log.log('{W}:' + detail.message)
         elif self.tv_type == self.TV_TYPE_2011:
-            Dialog.notification("LG TV 2011","2011 LG TV is not supported yet")
-            xbmc_log.log("2011 LG TV is not supported yet")
+            xbmc_log.log("Running timer")
+            self.timeout_timer.start()
+            xbmc_log.log("Creating shutdowner")
+            try:
+                self.cli = LGTVNetworkShutdown2011(ip_address)
+            except RuntimeWarning as detail:
+                xbmc_log.log('{W}:' + detail.message)
+            except Exception as e:
+                xbmc_log.log('Error: ' + str(e))
         else:
             xbmc_log.log("Ignoring TV type" + str(self.tv_type))
         xbmc_log.log("finished")
@@ -383,8 +391,149 @@ class LGTVNetworkShutdown2015(WebSocketClient):
             xbmc_log.log("Check failed")
         return False
 
-#class LGTVNetworkShutdown2011:
-    ####### TODO: https://github.com/dreamcat4/lgremote/blob/master/lgremote
+class LGTVNetworkShutdown2011(WebSocketClient):
+    PAIRING_KEY_PARAMETER_NAME = 'pairing_key_2011'
+    HTTP_HEADERS = {"Content-Type": "application/atom+xml"}
+    COMMAND_KEY_POWER = str(8) 
+    HTTP_TIMEOUT = 10
+
+    @property
+    def client_key(self):
+        key = "000000"
+        try:
+            key_tmp = xbmcaddon.Addon().getSetting(self.PAIRING_KEY_PARAMETER_NAME)
+            xbmc_log.log("Pairing key read: " + key_tmp, xbmc.LOGDEBUG)
+            if key_tmp != '':
+                key = key_tmp
+        except:
+            xbmc_log.log("Unable to read pairing key", xbmc.LOGERROR)
+        return key
+
+    def check_connection(self, ip_address):
+        try:
+            self.sessionID = ""
+            connection_url = 'http://' + ip_address + ':8080'
+            xbmc_log.log("Checking connection to " + connection_url )
+            
+            request = urllib2.Request(connection_url,headers=self.HTTP_HEADERS)
+            response = urllib2.urlopen(request, timeout=self.HTTP_TIMEOUT)
+            xbmc_log.log("Got response, code = " + str(response.getcode()))
+            if (response.getcode() == 404 or response.getcode() == 406):
+                xbmc_log.log("Check passed, "+str(response.getcode())+" expected {1}")
+                return True
+            else:
+                xbmc_log.log("Check failed, response not as expected")
+                Dialog.notification("LG TV 2011","Seems this is is not a 2011 TV")
+                return False
+        except urllib2.HTTPError as err:
+            if err.code == 404 or err.code == 406:
+                xbmc_log.log("Check passed, "+str(err.code)+" expected {2}")
+                return True
+            else:
+                xbmc_log.log("Check failed, response is not as expected" + str(err.code))
+                Dialog.notification("LG TV 2011","Seems this is is not a 2011 TV")
+                return False
+        except urllib2.URLError as err:
+            Dialog.notification("LG TV 2011","Connection failed. Maybe IP or type is incorrect?")
+            xbmc_log.log("Check failed, URLError")
+        return False
+
+    def getSessionString(self, responseStr):
+        try:
+            tree = etree.XML(responseStr)
+            self.sessionID = tree.find('session').text
+            xbmc_log.log("Found SessionID:"+self.sessionID)
+            return True
+        except Exception as e:
+            self.sessionID = ""
+            xbmc_log.log("Did not find session ID " + str(e))
+            return False
+
+    def check_registration(self,ip_address):
+        #ignore following
+        if len(self.client_key)>1:
+            data = "<?xml version=\"1.0\" encoding=\"utf-8\"?><auth><type>AuthReq</type><value>" + self.client_key + "</value></auth>"
+        else:
+            data = "<?xml version=\"1.0\" encoding=\"utf-8\"?><auth><type>AuthReq</type></auth>" #display key at the TV
+            
+        try:
+            url = 'http://'+ip_address+':8080/hdcp/api/auth'
+            request = urllib2.Request(url,data=data,headers=self.HTTP_HEADERS)
+            xbmc_log.log(url)
+            response = urllib2.urlopen(request, timeout=self.HTTP_TIMEOUT)
+            responseStr = response.read()
+            xbmc_log.log("No errors during registration check"+responseStr)                    
+
+            ok = self.getSessionString(responseStr)
+                        
+            return ok
+        except urllib2.HTTPError as err:
+            if err.code == 401:
+                xbmc_log.log("Wrong key supplied: " + self.client_key)
+                Dialog.notification("LG TV 2011","Go to settings to set up key")
+                return False
+            else:
+                xbmc_log.log("Unexpected response code " + str(err.code))
+        except urllib2.URLError:
+            xbmc_log.log("Error checking registration: unable to connect or make a request {URLError)")
+            return False
+
+    def send_turn_off_command(self,ip_address):                
+        xbmc_log.log("Sending TURN OFF command")
+        
+        ok = False
+        isTvStillOn = True
+        for i in range(3): #try 3 times to shutdown TV (sometimes the shutdown command is not accepted for the first time. Do not know why)
+            time.sleep(1)
+            xbmc_log.log("Send Command")
+            ok=self.send_command(ip_address,self.COMMAND_KEY_POWER)
+            xbmc_log.log("Command sent. Now wait...")
+            time.sleep(4) #wait for TV to switch off
+
+            xbmc_log.log("Check if TV is still on")
+            isTvStillOn = self.check_registration(ip_address)            
+
+            if not isTvStillOn:
+                xbmc_log.log("TV is off. Successful.")
+                break
+            else:
+                xbmc_log.log("TV is still on. Retry...")                
+
+        return ok
+
+    def send_command(self,ip_address,command):
+        #data = "<?xml version=\"1.0\" encoding=\"utf-8\"?><command><name>HandleKeyInput</name><value>" + command + "</value></command>"
+        data = "<?xml version=\"1.0\" encoding=\"utf-8\"?><command><session>" + self.sessionID  + "</session><type>HandleKeyInput</type><value>" + command + "</value></command>"
+        xbmc_log.log(data)
+        try:
+            request = urllib2.Request('http://'+ip_address+':8080/hdcp/api/dtv_wifirc',data=data,headers=self.HTTP_HEADERS)
+            response = urllib2.urlopen(request, timeout=self.HTTP_TIMEOUT)
+            Dialog.notification("LG TV 2011","Command sent")
+            xbmc_log.log("Command sent")
+            time.sleep(1);
+            return True
+        except urllib2.HTTPError as err:
+            xbmc_log.log("Error sending PWR_OFF: unable to connect or make a request {HTTPErrror): " + str(err.code))
+            return False
+        except urllib2.URLError:
+            xbmc_log.log("Error sending PWR_OFF: unable to connect or make a request {URLError)")
+            return False
+
+    def __init__(self, ip_address):
+        if self.check_connection(ip_address) == True:
+            if self.check_registration(ip_address) == True:
+                if self.send_turn_off_command(ip_address) == True:
+                    xbmc_log.log("Successfully sent PWR_OFF")
+                else:
+                    raise RuntimeWarning('Unable to send PWR_OFF')
+            else:
+                raise RuntimeWarning('Unable to check registration - possibly wrong key')
+        else:
+            raise RuntimeWarning('Unable to check connection')
+
+    def close(self):
+        pass
+
 
 
 if __name__ == '__main__':

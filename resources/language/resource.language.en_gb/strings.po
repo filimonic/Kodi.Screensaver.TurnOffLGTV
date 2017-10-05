@@ -89,8 +89,8 @@ msgstr "LG TV (2015 only) key"
 
 #LG TV 2011 specific
 msgctxt "#30130"
-msgid "LG TV 2011 (unsupported)"
-msgstr "LG TV 2011 (unsupported)"
+msgid "LG TV 2011"
+msgstr "LG TV 2011"
 
 msgctxt "#30131"
 msgid "LG TV 2011 specific settings"
@@ -100,4 +100,6 @@ msgctxt "#30132"
 msgid "LG TV 2011 not supported yet"
 msgstr "LG TV 2011 not supported yet"
 
-
+msgctxt "#30133"
+msgid "LG TV (2011 only) key"
+msgstr "LG TV (2011 only) key"
