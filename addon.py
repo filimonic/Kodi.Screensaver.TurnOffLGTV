@@ -1,7 +1,7 @@
 __author__ = "Alexey D. Filimoniov <filimonic>"
 __credits__ = ["haribertlondon/dreamcat4 for LG TV Remote 2011","msloth for LG TV Remote 2015", "ubaransel for LG TV Remote 2012-2014"]
 __license__ = "GPL"
-__version__ = "1.1.5"
+__version__ = "1.1.6"
 __maintainer__ = "Alexey D. Filimonov <filimonic>"
 __email__ = "alexey@filimonic.net"
 __status__ = "Developement"
