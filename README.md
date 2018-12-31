@@ -1,4 +1,5 @@
 Not supported anymore because I do not use Kodi anymore.
+Please follow [BillyNate's release](https://github.com/BillyNate/Kodi.Script.TurnOffLGTV)
 
 # Kodi.Screensaver.TurnOffLGTV
 
