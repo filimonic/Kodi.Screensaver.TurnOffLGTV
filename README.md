@@ -1,5 +1,12 @@
-Not supported anymore because I do not use Kodi anymore.
+For my WebOS TV with problem that LG TV does not support `CEC STANDBY` command, 
+I switched to hardware workaround: [cec_lg_off](https://github.com/ALFISYS/cec_lg_off)
+
+<hr>
+
+This repository supported anymore because I do not use Kodi anymore.
 Please follow [BillyNate's release](https://github.com/BillyNate/Kodi.Script.TurnOffLGTV)
+
+<hr>
 
 # Kodi.Screensaver.TurnOffLGTV
 
